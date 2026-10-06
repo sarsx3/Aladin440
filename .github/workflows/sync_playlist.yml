@@ -1,0 +1,36 @@
+name: Sync Playlist
+
+on:
+  schedule:
+    - cron: "0,30 * * * *"   # প্রতি ৩০ মিনিটে
+  workflow_dispatch:           # হাতে চালানোর জন্য
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write          # commit করার permission
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pycryptodome
+
+      - name: Generate playlist
+        run: python scripts/generate_playlist.py
+
+      - name: Commit & push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add playlist.m3u
+          git diff --cached --quiet || git commit -m "🔄 Auto-sync playlist [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
