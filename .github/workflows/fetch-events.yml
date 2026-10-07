@@ -1,0 +1,37 @@
+name: Fetch PlayZ TV API JSON
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # প্রতি ৩০ মিনিটে
+  workflow_dispatch:          # হাতে চালাতে চাইলে
+
+jobs:
+  fetch-json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get API base URL
+        run: |
+          API_URL=$(curl -s https://voltsphere.pages.dev/api-url.json | jq -r '.api_url')
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+
+      - name: Fetch live events JSON
+        run: |
+          mkdir -p data
+          curl -s "$API_URL/get.php" \
+            -H "User-Agent: Mozilla/5.0" \
+            -o data/events.json
+          echo "tv_events count: $(cat data/events.json | jq '.tv_events | length')"
+
+      - name: Commit updated JSON
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/events.json
+          git diff --cached --quiet || git commit -m "chore: update events [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
