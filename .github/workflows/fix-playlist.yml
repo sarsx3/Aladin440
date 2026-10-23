@@ -1,0 +1,46 @@
+name: Fix Movie Playlist
+
+on:
+  schedule:
+    # প্রতি ১৫ মিনিট পরপর চলবে (সোর্স প্লেলিস্ট auto-update এর সাথে সিঙ্ক রাখার জন্য)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}   # চাইলে ম্যানুয়ালি "Run workflow" বাটন দিয়েও চালানো যাবে
+  push:
+    branches: [main]
+    paths:
+      - "scripts/fix_playlist.py"
+      - ".github/workflows/fix-playlist.yml"
+
+permissions:
+  contents: write   # repo-তে commit/push করার জন্য দরকার
+
+concurrency:
+  group: fix-playlist
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run fixer script
+        run: python scripts/fix_playlist.py
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "playlist-fixer-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet -- docs/Movie_Combined_Fixed.m3u; then
+            echo "No changes in fixed playlist — skip commit."
+          else
+            git add docs/Movie_Combined_Fixed.m3u
+            git commit -m "chore: auto-update fixed playlist [skip ci]"
+            git push
+          fi
