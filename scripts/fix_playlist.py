@@ -17,6 +17,7 @@ fix_playlist.py
 """
 
 import sys
+import os
 import re
 import urllib.request
 from collections import Counter
@@ -200,6 +201,10 @@ def main():
         )
 
     output = render(header_lines, entries)
+
+    out_dir = os.path.dirname(OUTPUT_PATH)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write(output)
